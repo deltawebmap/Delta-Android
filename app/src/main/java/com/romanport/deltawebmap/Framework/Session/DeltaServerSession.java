@@ -18,22 +18,24 @@ public class DeltaServerSession {
     public Boolean active;
 
     //Inner vars
+    private SessionActivityConnection conn;
     private HTTPTool http;
-    protected Queue<DeltaServerSessionAction<?, ?, ? extends Activity>> actionQueue;
-    private DeltaServerSessionQueue queueThread;
+    private DeltaServerSessionQueue queue;
 
     //These should never be directly accessed
     private CreateSessionResponse _session;
     private TribeOverviewResponse _overview;
 
-    public DeltaServerSession(String id) {
+    public DeltaServerSession(SessionActivityConnection conn, String id) {
         this.id = id;
+        this.conn = conn;
         this.active = true;
-        this.actionQueue = new LinkedList<>();
-        http = new HTTPTool(""); //TODO: Remove my own token from this
-        queueThread = new DeltaServerSessionQueue();
-        queueThread.session = this;
-        queueThread.start();
+        http = new HTTPTool("A0CC6A9D0A14AEAE9B496BA30D5B7A9415E2E566B7568774EC4B1AB56A75AC24"); //TODO: Remove my own token from this
+        queue = new DeltaServerSessionQueue(this);
+    }
+
+    public DeltaServerSessionQueue GetQueue() {
+        return queue;
     }
 
     public CreateSessionResponse GetSession() throws Exception {
@@ -61,6 +63,6 @@ public class DeltaServerSession {
         data.action = action;
         data.a = a;
         data.action.context = context;
-        actionQueue.add(data);
+        GetQueue().QueueAction(data);
     }
 }

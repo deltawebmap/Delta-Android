@@ -24,7 +24,20 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
     }
 
     @Override
-    public Integer Run(DeltaServerSession session, SearchRequest input) throws Exception {
+    public Integer Run(DeltaServerSession session, final SearchRequest input) throws Exception {
+        //Gross, but break the 4th wall and clear the RecyclerView
+        input.activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                //Clear value of the recylcerview
+                input.activity.searchListViewAdapter.ClearData();
+            }
+        });
+
+        //Check if we've been cancelled
+        if(!CheckIfTokenValid(input))
+            return -1;
+
         //Loop through sources and get results, firing them each time
         int resultCount = 0;
         for(SearchSource source : sources) {
@@ -51,6 +64,8 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
 
     //Adds responses to the list of data displayed on-screen
     private void ApplyResponse(final List<SearchResponse> responses, final SearchRequest query) {
+        if(!CheckIfTokenValid(query))
+            return;
         query.activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {

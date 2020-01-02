@@ -7,6 +7,41 @@
     tools:context=".MainActivity"
     android:background="@color/colorPrimary">
 
+    <include layout="@layout/search_drawer_main"
+        android:visibility="gone"
+        android:id="@+id/search_drawer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <!--<com.romanport.deltawebmap.Framework.Views.Maps.MapZoomLayerView
+        android:id="@+id/map"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+        <com.romanport.deltawebmap.Framework.Views.Maps.MapZoomLayerView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/colorAlert">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@color/colorTextWhite"/>
+        </com.romanport.deltawebmap.Framework.Views.Maps.MapZoomLayerView>
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@color/colorAccent"
+            android:alpha="0.5"/>
+    </com.romanport.deltawebmap.Framework.Views.Maps.MapZoomLayerView>-->
+    <com.romanport.deltawebmap.Framework.Views.Maps.DeltaMapContainer
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/map">
+    </com.romanport.deltawebmap.Framework.Views.Maps.DeltaMapContainer>
+
     <include
         android:id="@+id/toolbar_new"
         layout="@layout/content_main_header"
@@ -21,11 +56,5 @@
         android:background="@drawable/search_box_container_shape"
         android:elevation="12dp"
         android:layout_weight="4"/>
-
-    <include layout="@layout/search_drawer_main"
-        android:visibility="gone"
-        android:id="@+id/search_drawer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
 
 </android.support.constraint.ConstraintLayout>

@@ -63,7 +63,6 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.SearchAdap
     @Override
     public void onBindViewHolder(SearchAdapterHolder holder, int position) {
         //Clear
-        holder.children.setAdapter(null);
         ImageTool.SetImageInverted(false, holder.img);
         //TODO: Clear more
 
@@ -91,6 +90,12 @@ public class SearchAdapter extends RecyclerView.Adapter<SearchAdapter.SearchAdap
     public void AddItems(List<SearchResponse> responses) {
         startSectionIndexes.add(this.responses.size());
         this.responses.addAll(responses);
+        notifyDataSetChanged();
+    }
+
+    public void ClearData() {
+        startSectionIndexes.clear();
+        responses.clear();
         notifyDataSetChanged();
     }
 

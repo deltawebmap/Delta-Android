@@ -24,6 +24,10 @@ public class SearchResponseTribeOverview extends SearchResponse {
 
     @Override
     public void BindView(Context c, SearchAdapter.SearchAdapterHolder v) {
+        //Clear ListView
+        v.children.setAdapter(null);
+
+        //Set
         v.title.setText(data.displayName);
         v.subtitle.setText(data.classDisplayName+" - Lvl "+data.level);
         ImageTool.SetImageOnView(data.img, v.img);

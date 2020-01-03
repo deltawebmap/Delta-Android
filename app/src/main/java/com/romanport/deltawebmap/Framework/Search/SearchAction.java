@@ -57,7 +57,7 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
         return input.token;
     }
 
-    //Checks if a token is valid and we can continue to update views
+    //Checks if a token is valid and we can continue to update tiles
     private Boolean CheckIfTokenValid(SearchRequest input) {
         return input.activity.searchToken == input.token;
     }

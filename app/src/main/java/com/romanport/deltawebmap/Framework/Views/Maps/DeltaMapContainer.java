@@ -1,24 +1,30 @@
 package com.romanport.deltawebmap.Framework.Views.Maps;
 
 import android.content.Context;
+import android.graphics.Matrix;
+import android.graphics.Point;
+import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
+import com.otaliastudios.zoom.ZoomEngine;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapLayer;
-import com.shopgun.android.zoomlayout.ZoomLayout;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
 
 public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadCallback {
 
+    public static float ZOOM_SCALE_FACTOR = 1.5f;
+
     public Context context;
     public DeltaMapConfig config;
-    private int minRegisteredZoom;
-    public LinkedList<MapZoomLayerView> views;
+    public int maxUsefulZoom;
+    public LinkedList<DeltaMapTile> tiles;
+    public DeltaMapTileHolder holder;
 
     public DeltaMapContainer(Context ctx) {
         super(ctx);
@@ -33,64 +39,47 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
     private void Init(Context ctx) {
         //Set values
         context = ctx;
-        minRegisteredZoom = 0;
-        views = new LinkedList<>();
+        tiles = new LinkedList<>();
 
-        //Add listeners
-        addOnZoomListener(new OnZoomListener() {
+        //Add listener
+        getEngine().addListener(new ZoomEngine.Listener() {
             @Override
-            public void onZoomBegin(ZoomLayout view, float scale) {
-
+            public void onUpdate(@NotNull ZoomEngine zoomEngine, @NotNull Matrix matrix) {
+                ManageTiles();
             }
 
             @Override
-            public void onZoom(ZoomLayout view, float scale) {
-                OnZoom(scale);
-            }
-
-            @Override
-            public void onZoomEnd(ZoomLayout view, float scale) {
+            public void onIdle(@NotNull ZoomEngine zoomEngine) {
 
             }
         });
-        addOnPanListener(new OnPanListener() {
-            @Override
-            public void onPanBegin(ZoomLayout view) {
-
-            }
-
-            @Override
-            public void onPan(ZoomLayout view) {
-                CreateNewTiles(getScale());
-                Log.d("MAP-POS", "P:"+getPosX());
-                for(MapZoomLayerView layer : views) {
-                    if(layer.depth == 3 && layer.x == 2 && layer.y == 0)
-                        layer.GetTilePosOnScreen();
-                }
-            }
-
-            @Override
-            public void onPanEnd(ZoomLayout view) {
-
-            }
-        });
-        setMaxScale(1000);
-        setMinScale(0.5f);
     }
 
     public void LoadConfig(DeltaMapConfig config) {
+        //WARNING: This has undefined behavior if this is called twice. Avoid doing that.
+
         //Set config
         this.config = config;
 
-        //Add content
-        MapZoomLayerView v = new MapZoomLayerView(context, this, 0, 0, 0, 0, 0);
-        views.add(v);
-        addView(v);
-        invalidate();
+        //Get the maximum useful zoom (the maximum zoom supported by the maximum layer)
+        maxUsefulZoom = 1;
+        for(DeltaMapLayer l : config.layers) {
+            maxUsefulZoom = (int)Math.max(maxUsefulZoom, l.GetMaxZoom(config));
+        }
+
+        //Set params
+        setMaxZoom(ZOOM_SCALE_FACTOR * config.maxNativeZoom, TYPE_ZOOM);
+
+        //Create holder
+        holder = new DeltaMapTileHolder(context, this);
+        addView(holder);
+
+        //Refresh
+        ManageTiles();
     }
 
     public View[] GetDisplayImageViews(int zoom, int x, int y) {
-        //Used to obtain the actual image views that you'll be able to see
+        //Used to obtain the actual image tiles that you'll be able to see
 
         //Run each of the layers specified in the config
         View[] views = new View[config.layers.length];
@@ -105,94 +94,146 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         //This is called when a layer, loaded in the above function, has finished processing.
     }
 
-    public void OnZoom(float scale) {
+    public PointF ConvertScreenPosToTilePos(Point pos, int zoomLevel) {
+        //Calculate tilesPerAxis
+        int tilesPerAxis = (int)Math.pow(2, zoomLevel);
+
+        //Convert this to be in the zoom area space
+        float x = pos.x - getScaledPanX();
+        float y = pos.y - getScaledPanY();
+
+        //Find where this lands in the total space allowed
+        x /= getRealZoom();
+        y /= getRealZoom();
+
+        //Normalize this
+        x /= GetMaxCanvasPixels();
+        y /= GetMaxCanvasPixels();
+
+        //Multiply this by the number of tiles to bring this into tile space
+        x *= tilesPerAxis;
+        y *= tilesPerAxis;
+
+        //Log.d("CONVERT-TEST", "X: "+x+"; POS-X: "+getScaledPanX());
+
+        return new PointF(x, y);
+    }
+
+    public int GetTileZoom() {
+        //Returns the current target zoom level on the tile
+        float z = getZoom() / ZOOM_SCALE_FACTOR;
+        return (int)Math.floor(Math.min(config.maxNativeZoom, Math.max(0, z)));
+    }
+
+    public void ManageTiles() {
+        //If we have no config, abort
         if(config == null)
             return;
-        Log.d("ZOOM", "Z: "+scale);
 
-        //Create new elements
-        CreateNewTiles(scale);
+        //Get the target zoom level based upon our zoom, then only use it if it is useful
+        int targetZoom = Math.min(maxUsefulZoom, GetTileZoom());
 
-        //Set opacity
-        SetTileOpacity(scale);
+        //Calulate some more
+        int tilesPerAxis = (int)Math.pow(2, targetZoom);
+
+        //Convert the top left and bottom right of the display so we can find tiles that are in range
+        PointF min = ConvertScreenPosToTilePos(new Point(0, 0), targetZoom);
+        PointF max = ConvertScreenPosToTilePos(new Point(getWidth(), getHeight()), targetZoom);
+
+        //Add new tiles
+        AddNewTiles(targetZoom, tilesPerAxis, min, max);
+
+        //Clean old tiles
+        ClearOldTiles(targetZoom, tilesPerAxis, min, max);
+
+        //Clear tiles for zoom levels greater than this
+        ClearTilesFarAway(targetZoom);
     }
 
-    private void CreateNewTiles(float scale) {
-        //Get target
-        int targetZoomLevel = (int)Math.floor(scale);
+    private void AddNewTiles(int targetZoom, int tilesPerAxis, PointF min, PointF max) {
+        //Generate all tiles within these bounds
+        int tilesGenerated = 0;
+        for(int x = (int)Math.floor(min.x); x < (int)Math.ceil(max.x); x++) {
+            for(int y = (int)Math.floor(min.y); y < (int)Math.ceil(max.y); y++) {
+                //Ensure this is within bounds
+                if(x < 0 || x >= tilesPerAxis || y < 0 || y >= tilesPerAxis)
+                    continue;
 
-        //Get all elements on the current zoom layer
-        LinkedList<MapZoomLayerView> currentLayerViews = GetAllZoomViewsOfLevel(targetZoomLevel - 1);
+                //Make sure we don't have a tile here already
+                if(GetTileAtPos(x, y, targetZoom) != null)
+                    continue;
 
-        //Check all
-        int deployedCount = 0;
-        for(MapZoomLayerView layer : currentLayerViews) {
-            //If quadrants for this are already deployed, ignore
-            if(layer.isQuadrantsDeployed)
+                //Create
+                holder.AddTile(context, x, y, targetZoom);
+
+                //Log
+                Log.d("CREATE-TILES", "Created @ "+x+", "+y);
+                tilesGenerated++;
+            }
+        }
+
+        //Log
+        if(tilesGenerated != 0)
+            Log.d("CREATE-TILES-DONE", "Created " + tilesGenerated + " tiles");
+    }
+
+    private void ClearOldTiles(int targetZoom, int tilesPerAxis, PointF min, PointF max) {
+        //Calculate bounds
+        int boundXMin = (int)Math.floor(min.x - 1);
+        int boundXMax = (int)Math.ceil(max.x + 1);
+        int boundYMin = (int)Math.floor(min.y - 1);
+        int boundYMax = (int)Math.ceil(max.y + 1);
+
+        //Loop through active tiles and remove old ones
+        LinkedList<DeltaMapTile> oldTiles = new LinkedList<>();
+        for(DeltaMapTile t : tiles) {
+            if(t.zoom != targetZoom)
                 continue;
-
-            //Check all quadrants to see if *any* are in view
-            if(!layer.IsVisible())
+            if(t.x > boundXMin && t.x < boundXMax)
                 continue;
-
-            //Deploy quadrants for this layer
-            layer.AddChildrenZoomQuadrants();
-            deployedCount++;
-
-            Log.d("DEPLOY", layer.GetDebugString());
+            if(t.y > boundYMin && t.y < boundYMax)
+                continue;
+            oldTiles.add(t);
         }
 
-        if(deployedCount > 0)
-            Log.d("DEPLOY-COUNT", "Deployed "+deployedCount+" tiles in one batch.");
-    }
+        //Log
+        if(oldTiles.size() != 0)
+            Log.d("CLEAN-TILES-DONE", "Cleaned "+oldTiles.size()+" old tiles");
 
-    private void SetTileOpacity(float scale) {
-        //Get the target zoom level
-        int targetZoomLevel = (int)Math.floor(scale);
-
-        //Find all zoom levels
-        LinkedList<MapZoomLayerView> currentLayerViews = GetAllZoomViewsOfLevel(targetZoomLevel);
-        LinkedList<MapZoomLayerView> lowerLayerViews = GetAllZoomViewsLessThanLevel(targetZoomLevel);
-        LinkedList<MapZoomLayerView> higherLayerViews = GetAllZoomViewsLargerThanLevel(targetZoomLevel);
-
-        //Set the opacity of elements
-        for(MapZoomLayerView v : currentLayerViews) {
-            float a = (float)(scale - Math.floor(scale));
-            Log.d("ALPHA", "A: "+(1 - a)+"; Z: "+targetZoomLevel);
-            v.SetLayersAlpha(1 - a);
-        }
-        for(MapZoomLayerView v : lowerLayerViews) {
-            v.SetLayersAlpha(0);
-        }
-        for(MapZoomLayerView v : higherLayerViews) {
-            v.SetLayersAlpha(1);
+        //Remove these tiles
+        for(DeltaMapTile t : oldTiles) {
+            holder.removeView(t);
+            tiles.remove(t);
         }
     }
 
-    private LinkedList<MapZoomLayerView> GetAllZoomViewsOfLevel(int level) {
-        LinkedList<MapZoomLayerView> v = new LinkedList<>();
-        for(MapZoomLayerView view : views) {
-            if(view.depth == level)
-                v.add(view);
+    private void ClearTilesFarAway(int targetZoom) {
+        //Clears tiles that are a few zoom levels ahead of us
+
+        //Find those tiles
+        LinkedList<DeltaMapTile> oldTiles = new LinkedList<>();
+        for(DeltaMapTile t : tiles) {
+            if(t.zoom <= targetZoom + 1)
+                continue;
+            oldTiles.add(t);
         }
-        return v;
+
+        //Remove these tiles
+        for(DeltaMapTile t : oldTiles) {
+            holder.removeView(t);
+            tiles.remove(t);
+        }
     }
 
-    private LinkedList<MapZoomLayerView> GetAllZoomViewsLargerThanLevel(int level) {
-        LinkedList<MapZoomLayerView> v = new LinkedList<>();
-        for(MapZoomLayerView view : views) {
-            if(view.depth > level)
-                v.add(view);
+    public DeltaMapTile GetTileAtPos(int x, int y, int zoom) {
+        for(DeltaMapTile t : tiles) {
+            if(t.x == x && t.y == y && t.zoom == zoom)
+                return t;
         }
-        return v;
+        return null;
     }
 
-    private LinkedList<MapZoomLayerView> GetAllZoomViewsLessThanLevel(int level) {
-        LinkedList<MapZoomLayerView> v = new LinkedList<>();
-        for(MapZoomLayerView view : views) {
-            if(view.depth < level)
-                v.add(view);
-        }
-        return v;
+    public int GetMaxCanvasPixels() {
+        return (int)Math.pow(2, maxUsefulZoom) * 256;
     }
 }

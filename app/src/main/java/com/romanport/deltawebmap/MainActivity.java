@@ -151,19 +151,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         DeltaMapContainer map = (DeltaMapContainer)findViewById(R.id.map);
         DeltaMapConfig cfg = new DeltaMapConfig();
         cfg.layers = new DeltaMapLayer[] {
-                /*new DeltaMapNetworkImageLayer() {
+                new DeltaMapNetworkImageLayer() {
                     @Override
                     public String GetImageURL(DeltaMapConfig config, int zoom, int x, int y) {
                         return "https://tile-assets.deltamap.net/extinction/v1/0/"+zoom+"/"+x+"/"+y+".png";
                     }
-                },*/
-                new DeltaMapTextLayer() {
+
                     @Override
-                    public String GetText(DeltaMapConfig config, int zoom, int x, int y) {
-                        return "Z:"+zoom;
+                    public int GetMaxZoom(DeltaMapConfig config) {
+                        return 6;
                     }
-                }
+                },
         };
+        cfg.maxNativeZoom = 150;
         map.LoadConfig(cfg);
     }
 

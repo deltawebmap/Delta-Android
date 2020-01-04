@@ -12,9 +12,11 @@ import com.romanport.deltawebmap.MainActivity;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, MainActivity>  {
+public class SearchAction extends DeltaServerCallback<MainActivity>  {
 
     public List<SearchSource> sources;
+    public SearchRequest input;
+    public Integer token;
 
     public SearchAction() {
         //Create sources
@@ -24,7 +26,7 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
     }
 
     @Override
-    public Integer Run(DeltaServerSession session, final SearchRequest input) throws Exception {
+    public void Run(DeltaServerSession session) throws Exception {
         //Gross, but break the 4th wall and clear the RecyclerView
         input.activity.runOnUiThread(new Runnable() {
             @Override
@@ -35,8 +37,10 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
         });
 
         //Check if we've been cancelled
-        if(!CheckIfTokenValid(input))
-            return -1;
+        if(!CheckIfTokenValid(input)) {
+            token = -1;
+            return;
+        }
 
         //Loop through sources and get results, firing them each time
         int resultCount = 0;
@@ -54,7 +58,7 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
             }
         }
         Log.d("SearchAction", "Got "+resultCount+" results.");
-        return input.token;
+        token = input.token;
     }
 
     //Checks if a token is valid and we can continue to update tiles
@@ -75,7 +79,7 @@ public class SearchAction extends DeltaServerCallback<Integer, SearchRequest, Ma
     }
 
     @Override
-    public void OnResponse(Integer result, MainActivity activity) {
+    public void RunMainThread(MainActivity activity) {
         //TODO: Set
     }
 }

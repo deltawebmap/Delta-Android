@@ -13,7 +13,7 @@ public class DeltaServerSessionQueue {
 
     public Boolean active;
 
-    private Queue<DeltaServerSessionAction<?, ?, ? extends Activity>> actionQueue;
+    private Queue<DeltaServerSessionAction<? extends Activity>> actionQueue;
 
     public DeltaServerSessionQueue(DeltaServerSession session) {
         this.session = session;
@@ -38,7 +38,7 @@ public class DeltaServerSessionQueue {
     public class DeltaServerSessionQueueThread extends Thread {
         public void run() {
             Log.d("DeltaServerSessionQueue", "Thread started.");
-            DeltaServerSessionAction<?, ?, ? extends Activity> action;
+            DeltaServerSessionAction<? extends Activity> action;
             while (active) {
                 //Try and pop an action
                 if (actionQueue.isEmpty()) {
@@ -57,7 +57,7 @@ public class DeltaServerSessionQueue {
         }
     }
 
-    public <T, O, A extends Activity> void QueueAction(DeltaServerSessionAction<?, ?, ? extends Activity> action) {
+    public <O, A extends Activity> void QueueAction(DeltaServerSessionAction<? extends Activity> action) {
         StartThread(); //Make sure it is started
         actionQueue.add(action);
     }

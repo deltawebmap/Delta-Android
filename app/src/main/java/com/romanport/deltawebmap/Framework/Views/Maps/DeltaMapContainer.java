@@ -7,9 +7,11 @@ import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 
 import com.otaliastudios.zoom.ZoomEngine;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
+import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapIconData;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapLayer;
 
 import org.jetbrains.annotations.NotNull;
@@ -25,6 +27,7 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
     public int maxUsefulZoom;
     public LinkedList<DeltaMapTile> tiles;
     public DeltaMapTileHolder holder;
+    public DeltaMapIconPane iconPane;
 
     public DeltaMapContainer(Context ctx) {
         super(ctx);
@@ -45,6 +48,8 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         getEngine().addListener(new ZoomEngine.Listener() {
             @Override
             public void onUpdate(@NotNull ZoomEngine zoomEngine, @NotNull Matrix matrix) {
+                if(iconPane != null)
+                    iconPane.requestLayout();
                 ManageTiles();
             }
 
@@ -73,6 +78,19 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         //Create holder
         holder = new DeltaMapTileHolder(context, this);
         addView(holder);
+
+        //Create icon holder
+        iconPane = new DeltaMapIconPane(context, this);
+        ((ViewGroup)getParent()).addView(iconPane);
+
+        //Add icons
+        for(DeltaMapIconData icd : config.icons) {
+            DeltaMapIcon icon = new DeltaMapIcon(context, icd, config);
+            iconPane.addView(icon);
+        }
+
+        //Update location
+        moveTo(config.initialPos.z, config.initialPos.x, config.initialPos.y, false);
 
         //Refresh
         ManageTiles();
@@ -115,6 +133,22 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         y *= tilesPerAxis;
 
         //Log.d("CONVERT-TEST", "X: "+x+"; POS-X: "+getScaledPanX());
+
+        return new PointF(x, y);
+    }
+
+    public PointF ConvertNormalizedPosToScreenPos(float x, float y) {
+        //Un-Normalize this
+        x *= GetMaxCanvasPixels();
+        y *= GetMaxCanvasPixels();
+
+        //Un-zoom this
+        x *= getRealZoom();
+        y *= getRealZoom();
+
+        //Translate this
+        x += getScaledPanX();
+        y += getScaledPanY();
 
         return new PointF(x, y);
     }

@@ -3,17 +3,15 @@ package com.romanport.deltawebmap.Framework.Session;
 import android.app.Activity;
 import android.util.Log;
 
-public class DeltaServerSessionAction<T, O, A extends Activity> {
+public class DeltaServerSessionAction<A extends Activity> {
 
-    public DeltaServerCallback<T, O, A> action;
-    public O context;
+    public DeltaServerCallback<A> action;
     public A a;
 
     protected void RunActionAndReturn(DeltaServerSession session) {
         //Run
-        final T response;
         try {
-            response = action.Run(session, context);
+            action.Run(session);
         } catch (Exception ex) {
             Log.d("RunActionAndReturn", "Action threw an error!");
             ex.printStackTrace();
@@ -25,7 +23,7 @@ public class DeltaServerSessionAction<T, O, A extends Activity> {
             @Override
             public void run() {
                 try {
-                    action.OnResponse(response, a);
+                    action.RunMainThread(a);
                 } catch (Exception ex) {
                     Log.d("RunActionAndReturn", "Action response threw an error!");
                     ex.printStackTrace();

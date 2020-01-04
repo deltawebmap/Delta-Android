@@ -8,18 +8,17 @@ import com.romanport.deltawebmap.Framework.Session.DeltaServerSession;
 import com.romanport.deltawebmap.Framework.Session.DeltaServerSessionAction;
 import com.romanport.deltawebmap.MainActivity;
 
-public class TestingAction extends DeltaServerCallback<HTTPTool, HTTPTool, MainActivity> {
+public class TestingAction extends DeltaServerCallback<MainActivity> {
 
     @Override
-    public HTTPTool Run(DeltaServerSession session, HTTPTool input) throws Exception {
+    public void Run(DeltaServerSession session) throws Exception {
         Log.d("TestingAction", "Ran Run");
         session.GetSession();
-        return null;
     }
 
     @Override
-    public void OnResponse(HTTPTool response, MainActivity a) {
-        Log.d("TestingAction", "Ran OnResponse");
+    public void RunMainThread(MainActivity a) {
+        Log.d("TestingAction", "Ran RunMainThread");
         a.OpenSearchDrawer();
     }
 }

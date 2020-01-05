@@ -3,6 +3,7 @@ package com.romanport.deltawebmap.Activities;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.PointF;
 import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -15,6 +16,7 @@ import com.romanport.deltawebmap.Framework.Views.Maps.Data.Templates.Layers.Delt
 import com.romanport.deltawebmap.Framework.Views.Maps.DeltaMapContainer;
 import com.romanport.deltawebmap.R;
 
+import java.util.LinkedList;
 import java.util.Random;
 
 public class LoginActivity extends AppCompatActivity {
@@ -42,7 +44,13 @@ public class LoginActivity extends AppCompatActivity {
         };
         cfg.maxNativeZoom = 150;
         cfg.initialPos = new Vector3(0f, 0f, 4f);
-        map.LoadConfig(cfg);
+        cfg.icons = new LinkedList<>();
+        map.LoadConfig(cfg, new DeltaMapContainer.DeltaMapUserInterface() {
+            @Override
+            public void OnMapMove(PointF centerPos, float zoom) {
+
+            }
+        });
     }
 
     public void OnLoginBtnPress(View v) {

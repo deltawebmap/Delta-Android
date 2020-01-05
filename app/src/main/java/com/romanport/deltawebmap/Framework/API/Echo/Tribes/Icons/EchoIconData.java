@@ -12,7 +12,7 @@ public class EchoIconData implements Serializable {
     public String id;
     public String outline_color;
     public String tag_color;
-    //dialog
+    public EchoIconDialogData dialog;
     //extras
 
 }

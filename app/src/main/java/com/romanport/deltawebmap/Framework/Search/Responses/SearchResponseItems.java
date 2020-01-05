@@ -65,7 +65,8 @@ public class SearchResponseItems extends SearchResponse {
             //Update
             h.text.setText(context.getString(R.string.item_search_result, inventory.count, holder.displayName));
             ImageTool.SetImageInverted(inventory.type == 0, h.img);
-            ImageTool.SetImageOnView(holder.img, h.img);
+            if(holder.img.length() > 1)
+                ImageTool.SetImageOnView(holder.img, h.img);
         }
     }
 }

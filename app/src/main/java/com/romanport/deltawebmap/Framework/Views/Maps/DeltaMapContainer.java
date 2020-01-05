@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.otaliastudios.zoom.ZoomEngine;
+import com.otaliastudios.zoom.internal.movement.ZoomManager;
+import com.romanport.deltawebmap.Framework.API.Entities.Vector3;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapIconData;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapLayer;
@@ -17,6 +19,7 @@ import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapLayer;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
+import java.util.Queue;
 
 public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadCallback {
 
@@ -28,6 +31,8 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
     public LinkedList<DeltaMapTile> tiles;
     public DeltaMapTileHolder holder;
     public DeltaMapIconPane iconPane;
+    public DeltaMapUserInterface userInterface;
+    private LinkedList<Runnable> queuedActions = new LinkedList<>();
 
     public DeltaMapContainer(Context ctx) {
         super(ctx);
@@ -51,6 +56,16 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
                 if(iconPane != null)
                     iconPane.requestLayout();
                 ManageTiles();
+
+                //Update location
+                Log.d("MAP_MOVE_GET_GOTO", getPanX()+", "+getPanY());
+                userInterface.OnMapMove(GetCenterNormalized(), getZoom());
+
+                //Run queued actions
+                LinkedList<Runnable> queue = new LinkedList<>(queuedActions);
+                queuedActions.clear();
+                for(Runnable r : queue)
+                    r.run();
             }
 
             @Override
@@ -60,11 +75,12 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         });
     }
 
-    public void LoadConfig(DeltaMapConfig config) {
+    public void LoadConfig(final DeltaMapConfig config, DeltaMapUserInterface userInterface) {
         //WARNING: This has undefined behavior if this is called twice. Avoid doing that.
 
         //Set config
         this.config = config;
+        this.userInterface = userInterface;
 
         //Get the maximum useful zoom (the maximum zoom supported by the maximum layer)
         maxUsefulZoom = 1;
@@ -85,12 +101,19 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
 
         //Add icons
         for(DeltaMapIconData icd : config.icons) {
-            DeltaMapIcon icon = new DeltaMapIcon(context, icd, config);
+            DeltaMapIcon icon = new DeltaMapIcon(context, icd, config, this);
             iconPane.addView(icon);
         }
 
         //Update location
-        moveTo(config.initialPos.z, config.initialPos.x, config.initialPos.y, false);
+        final Vector3 pos = config.initialPos;
+        queuedActions.add(new Runnable() {
+            @Override
+            public void run() {
+                //Zoom to
+                PointF f = SetCenterNormalized(pos.x, pos.y, pos.z);
+            }
+        });
 
         //Refresh
         ManageTiles();
@@ -112,10 +135,7 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         //This is called when a layer, loaded in the above function, has finished processing.
     }
 
-    public PointF ConvertScreenPosToTilePos(Point pos, int zoomLevel) {
-        //Calculate tilesPerAxis
-        int tilesPerAxis = (int)Math.pow(2, zoomLevel);
-
+    public PointF ConvertScreenPosToNormalizedPos(Point pos) {
         //Convert this to be in the zoom area space
         float x = pos.x - getScaledPanX();
         float y = pos.y - getScaledPanY();
@@ -128,11 +148,21 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         x /= GetMaxCanvasPixels();
         y /= GetMaxCanvasPixels();
 
+        return new PointF(x, y);
+    }
+
+    public PointF ConvertScreenPosToTilePos(Point pos, int zoomLevel) {
+        //Calculate tilesPerAxis
+        int tilesPerAxis = (int)Math.pow(2, zoomLevel);
+
+        //Get normalized
+        PointF normalizedPos = ConvertScreenPosToNormalizedPos(pos);
+        float x = normalizedPos.x;
+        float y = normalizedPos.y;
+
         //Multiply this by the number of tiles to bring this into tile space
         x *= tilesPerAxis;
         y *= tilesPerAxis;
-
-        //Log.d("CONVERT-TEST", "X: "+x+"; POS-X: "+getScaledPanX());
 
         return new PointF(x, y);
     }
@@ -157,6 +187,28 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
         //Returns the current target zoom level on the tile
         float z = getZoom() / ZOOM_SCALE_FACTOR;
         return (int)Math.floor(Math.min(config.maxNativeZoom, Math.max(0, z)));
+    }
+
+    public PointF GetCenterNormalized() {
+        return ConvertScreenPosToNormalizedPos(new Point(getWidth() / 2, getHeight() / 2));
+    }
+
+    public PointF SetCenterNormalized(float x, float y, float zoom) {
+        //Zoom
+        zoomTo(zoom, false);
+
+        //Un-Normalize this
+        x *= GetMaxCanvasPixels();
+        y *= GetMaxCanvasPixels();
+
+        //Offset
+        float z = getRealZoom();
+        x -= (getWidth() / 2) / z;
+        y -= (getHeight() / 2) / z;
+
+        //Pan
+        panTo(-x, -y, false);
+        return new PointF(-x, -y);
     }
 
     public void ManageTiles() {
@@ -269,5 +321,9 @@ public class DeltaMapContainer extends ZoomableViewGroup implements MapTileLoadC
 
     public int GetMaxCanvasPixels() {
         return (int)Math.pow(2, maxUsefulZoom) * 256;
+    }
+
+    public interface DeltaMapUserInterface {
+        void OnMapMove(PointF centerPos, float zoom);
     }
 }

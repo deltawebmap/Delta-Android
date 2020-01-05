@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.util.AttributeSet;
 import android.view.View;
 
 public class DeltaMapIconCircle extends View {
@@ -11,6 +12,14 @@ public class DeltaMapIconCircle extends View {
     public DeltaMapIconCircle(Context ctx, int borderColor) {
         super(ctx);
         this.borderColor = borderColor;
+    }
+
+    public DeltaMapIconCircle(Context ctx) {
+        super(ctx);
+    }
+
+    public DeltaMapIconCircle(Context ctx, AttributeSet attributeSet) {
+        super(ctx, attributeSet, 0);
     }
 
     public int borderWidth = 5;
@@ -24,13 +33,13 @@ public class DeltaMapIconCircle extends View {
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xffffffff);
-        c.drawCircle(halfWidth + borderWidth, halfWidth + borderWidth, halfWidth - (2 * borderWidth), p);
+        c.drawCircle(halfWidth, halfWidth, halfWidth - (2 * borderWidth), p);
 
         //Draw stroke
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(borderWidth);
         p.setColor(borderColor);
-        c.drawCircle(halfWidth + borderWidth, halfWidth + borderWidth, halfWidth - (2 * borderWidth), p);
+        c.drawCircle(halfWidth, halfWidth, halfWidth - (2 * borderWidth), p);
     }
 
     @Override

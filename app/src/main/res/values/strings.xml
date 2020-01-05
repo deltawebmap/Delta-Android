@@ -24,6 +24,13 @@
     <string name="http_error_net">Can\'t connect. Check your connection and try again later.</string>
     <string name="http_error_404">Server not found.</string>
 
+    <string name="dino_data_dialog_error">Oops! Couldn\'t load dino data. Try again later.</string>
+
+    <string name="ark_status_health">Health</string>
+    <string name="ark_status_stamina">Stamina</string>
+    <string name="ark_status_weight">Weight</string>
+    <string name="ark_status_food">Food</string>
+
     <string name="login_title">Welcome to Delta Web Map!</string>
     <string name="login_sub">To get started monitoring your ARK servers, you\'ll need to log in with Steam.</string>
     <string name="login_sub_tos">By logging in, you agree to our Terms of Service and Privacy Policy. Tap to view.</string>

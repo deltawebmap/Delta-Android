@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:paddingTop="@dimen/list_item_spacing"
+    android:paddingBottom="@dimen/list_item_spacing"
+    tools:context=".Activities.DinoDataDialogFragment"
+    android:background="@color/colorPrimary">
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:id="@+id/dinoDataTop">
+
+        <com.romanport.deltawebmap.Framework.Views.Maps.DeltaMapIconCircle
+            android:id="@+id/dinoDataIcon"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:id="@+id/dinoDataIconView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="@id/dinoDataIcon"
+            app:layout_constraintEnd_toEndOf="@id/dinoDataIcon"
+            app:layout_constraintStart_toStartOf="@id/dinoDataIcon"
+            app:layout_constraintTop_toTopOf="@id/dinoDataIcon" />
+
+        <TextView
+            android:id="@+id/dinoDataTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:text="Test Title"
+            android:textColor="@color/colorTextWhite"
+            android:textSize="24sp"
+            app:layout_constraintEnd_toStartOf="@id/dinoDataLoader"
+            app:layout_constraintStart_toEndOf="@id/dinoDataIcon"
+            app:layout_constraintTop_toTopOf="@id/dinoDataIcon" />
+
+        <TextView
+            android:id="@+id/dinoDataSubtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0sp"
+            android:layout_marginEnd="10sp"
+            android:layout_marginBottom="10sp"
+            android:text="Test Subtitle"
+            android:textColor="@color/colorTextAlmostWhite"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/dinoDataLoader"
+            app:layout_constraintStart_toStartOf="@id/dinoDataTitle"
+            app:layout_constraintTop_toBottomOf="@id/dinoDataTitle" />
+
+        <ProgressBar
+            android:id="@+id/dinoDataLoader"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="@id/dinoDataIcon"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/dinoDataIcon" />
+    </android.support.constraint.ConstraintLayout>
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/dinoDataBottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dinoDataTop">
+
+        <!-- Stats -->
+        <LinearLayout
+            android:id="@+id/dinoStatsContainerUpper"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <include
+                android:id="@+id/dinoDataStatHealth"
+                layout="@layout/stat_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1" />
+
+            <include
+                android:id="@+id/dinoDataStatStamina"
+                layout="@layout/stat_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dinoStatsContainerLower"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="horizontal"
+            android:paddingBottom="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/dinoStatsContainerUpper">
+
+            <include
+                android:id="@+id/dinoDataStatWeight"
+                layout="@layout/stat_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1" />
+
+            <include
+                android:id="@+id/dinoDataStatFood"
+                layout="@layout/stat_bar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+    </android.support.constraint.ConstraintLayout>
+
+</android.support.constraint.ConstraintLayout>

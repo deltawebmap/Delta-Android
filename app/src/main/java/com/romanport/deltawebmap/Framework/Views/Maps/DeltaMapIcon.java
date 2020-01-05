@@ -5,9 +5,11 @@ import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.otaliastudios.zoom.ScaledPoint;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapIconData;
 import com.romanport.deltawebmap.R;
@@ -17,9 +19,17 @@ public class DeltaMapIcon extends ViewGroup {
     public float normalizedPosX; //0-1, 0 being top left
     public float normalizedPosY; //0-1, 0 being top left
     public DeltaMapIconCircle circle;
+    public DeltaMapContainer controller;
+    public DeltaMapIconData data;
 
-    public DeltaMapIcon(Context c, DeltaMapIconData data, DeltaMapConfig cfg) {
+    private ScaledPoint lastTapPoint;
+
+    public DeltaMapIcon(Context c, DeltaMapIconData data, DeltaMapConfig cfg, DeltaMapContainer controller) {
         super(c);
+
+        //Save
+        this.data = data;
+        this.controller = controller;
 
         //Set pos
         PointF pos = data.GetNormalizedPos(cfg);
@@ -34,6 +44,26 @@ public class DeltaMapIcon extends ViewGroup {
         View[] v = data.GetInnerViews(c, cfg);
         for(View vv : v)
             addView(vv);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        super.onTouchEvent(event);
+        if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+            //We just started tapping. To ensure that the user actually intends on tapping this and isn't just moving the canvas
+            lastTapPoint = controller.getScaledPan();
+        } else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+            //Compare the last tap point to the current and check if the canvas has moved
+            ScaledPoint currentTapPoint = controller.getScaledPan();
+
+            //Find distance between these points
+            double distance = Math.sqrt(Math.pow(lastTapPoint.getX() - currentTapPoint.getX(), 2) + Math.pow(lastTapPoint.getY() - currentTapPoint.getY(), 2));
+
+            //Trigger
+            if(distance <= 10)
+                data.OnTap();
+        }
+        return true;
     }
 
     @Override

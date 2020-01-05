@@ -1,6 +1,7 @@
 package com.romanport.deltawebmap.Framework.Views.Maps.Data.Templates.Icons;
 
 import android.graphics.PointF;
+import android.util.Log;
 
 import com.romanport.deltawebmap.Framework.API.Echo.Tribes.Icons.EchoIconData;
 import com.romanport.deltawebmap.Framework.API.Entities.ArkMapData;
@@ -8,10 +9,10 @@ import com.romanport.deltawebmap.Framework.API.Entities.ArkMapDisplayData;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
 
 //Used to represent an echo icon
-public class DeltaMapEchoIconData extends DeltaMapNetworkImageIconData {
+public abstract class DeltaMapEchoIconData extends DeltaMapNetworkImageIconData {
 
     public EchoIconData data;
-    public ArkMapData mapData;
+    ArkMapData mapData;
 
     public DeltaMapEchoIconData(EchoIconData data, ArkMapData mapData) {
         this.data = data;

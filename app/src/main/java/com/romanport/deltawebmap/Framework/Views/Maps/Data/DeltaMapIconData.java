@@ -9,5 +9,6 @@ public abstract class DeltaMapIconData {
     public abstract View[] GetInnerViews(Context c, DeltaMapConfig cfg);
     public abstract int GetBorderColor(DeltaMapConfig cfg);
     public abstract PointF GetNormalizedPos(DeltaMapConfig cfg);
+    public abstract void OnTap();
 
 }

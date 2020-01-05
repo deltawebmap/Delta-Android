@@ -4,11 +4,14 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.PointF;
 import android.os.Bundle;
+import android.support.design.widget.BottomSheetDialogFragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.support.v4.view.GravityCompat;
 import android.view.MenuItem;
@@ -23,9 +26,11 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.romanport.deltawebmap.Activities.DinoDataDialogFragment;
 import com.romanport.deltawebmap.Activities.LoginActivity;
 import com.romanport.deltawebmap.Framework.API.Echo.Tribes.Icons.EchoIconData;
 import com.romanport.deltawebmap.Framework.API.Echo.Tribes.Icons.IconResponseData;
+import com.romanport.deltawebmap.Framework.API.Echo.Tribes.Structures.StructuresResponse;
 import com.romanport.deltawebmap.Framework.API.Entities.ArkMapData;
 import com.romanport.deltawebmap.Framework.API.Entities.Vector3;
 import com.romanport.deltawebmap.Framework.HTTPErrorHandler;
@@ -34,10 +39,15 @@ import com.romanport.deltawebmap.Framework.Search.SearchAction;
 import com.romanport.deltawebmap.Framework.Search.SearchAdapter;
 import com.romanport.deltawebmap.Framework.Search.SearchRequest;
 import com.romanport.deltawebmap.Framework.Session.Actions.ConfigureMapAction;
+import com.romanport.deltawebmap.Framework.Session.DeltaServerCallback;
 import com.romanport.deltawebmap.Framework.Session.DeltaServerSession;
+import com.romanport.deltawebmap.Framework.Session.DeltaSessionPersistentData;
 import com.romanport.deltawebmap.Framework.Session.SessionActivityConnection;
+import com.romanport.deltawebmap.Framework.Views.MapStructures.ARKStructureImageCache;
+import com.romanport.deltawebmap.Framework.Views.MapStructures.ARKStructureLayer;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapConfig;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.DeltaMapLayer;
+import com.romanport.deltawebmap.Framework.Views.Maps.Data.Templates.Icons.DeltaMapDinoIconData;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.Templates.Icons.DeltaMapEchoIconData;
 import com.romanport.deltawebmap.Framework.Views.Maps.Data.Templates.Layers.DeltaMapNetworkImageLayer;
 import com.romanport.deltawebmap.Framework.Views.Maps.DeltaMapContainer;
@@ -47,7 +57,7 @@ import java.util.LinkedList;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, SessionActivityConnection, HTTPErrorHandler {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, SessionActivityConnection, HTTPErrorHandler, DinoDataDialogFragment.DinoDataDialogListener, DeltaMapContainer.DeltaMapUserInterface {
 
     public RecyclerView searchListView;
     public SearchAdapter searchListViewAdapter;
@@ -58,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public DeltaServerSession session;
     public int searchToken;
     public Boolean isSearchOpen;
+    public ARKStructureImageCache structureImageCache;
+    public Vector3 lastMapPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,18 +110,36 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
         });
 
+        //Get bundled persist data, if any
+        DeltaSessionPersistentData persistentData = null;
+        if(savedInstanceState != null) {
+            lastMapPosition = (Vector3) savedInstanceState.getSerializable("LAST_MAP_POS");
+            persistentData = (DeltaSessionPersistentData) savedInstanceState.getSerializable("SESSION_PERSIST");
+        } else {
+            lastMapPosition = new Vector3(0f, 0f, 0f);
+            persistentData = new DeltaSessionPersistentData();
+        }
+
         //Set up session
-        session = new DeltaServerSession(this, this,"5dff22fa2c4cf87c38f5b173", this);
+        session = new DeltaServerSession(this, this,"5dff22fa2c4cf87c38f5b173", this, persistentData);
         session.GetQueue().StartThread();
 
         //Search default
         Search("");
 
+        //Set up image cache
+        structureImageCache = new ARKStructureImageCache(this);
+        structureImageCache.RunBackgroundThread();
+
         //Set up the map
         session.QueueAction(this, new ConfigureMapAction());
     }
 
-    public void SetMap(IconResponseData iconData, ArkMapData mapData) {
+    public void QueueAction(DeltaServerCallback action) {
+        session.QueueAction(this, action);
+    }
+
+    public void SetMap(IconResponseData iconData, ArkMapData mapData, StructuresResponse structures) {
         DeltaMapContainer map = (DeltaMapContainer)findViewById(R.id.map);
         DeltaMapConfig cfg = new DeltaMapConfig();
         cfg.layers = new DeltaMapLayer[] {
@@ -124,15 +154,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         return 6;
                     }
                 },
+                new ARKStructureLayer(structures, mapData, structureImageCache)
         };
         cfg.maxNativeZoom = 150;
-        cfg.initialPos = new Vector3(0f, 0f, 2f);
+        cfg.initialPos = lastMapPosition;
         cfg.icons = new LinkedList<>();
         cfg.iconSize = 150;
         for(EchoIconData ic : iconData.icons) {
-            cfg.icons.add(new DeltaMapEchoIconData(ic, mapData));
+            cfg.icons.add(new DeltaMapDinoIconData(ic, mapData, this));
         }
-        map.LoadConfig(cfg);
+        map.LoadConfig(cfg, this);
     }
 
     @Override
@@ -177,7 +208,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
-
+        session.SaveBundleState(state);
+        state.putSerializable("LAST_MAP_POS", lastMapPosition);
     }
 
     public void OpenSearchDrawer() {
@@ -326,5 +358,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(statusCode == 503)
             return R.string.http_error_503;
         return R.string.http_error_500;
+    }
+
+    public void OpenDinoModal(EchoIconData data) {
+        Log.d("OPEN-DINO-MODAL", data.dialog.title);
+        BottomSheetDialogFragment d = DinoDataDialogFragment.newInstance(data.id, data.img, data.dialog.title, data.dialog.subtitle);
+        d.show(getSupportFragmentManager(), "dino-data-dialog");
+    }
+
+    public void OnMapMove(PointF centerPos, float zoom) {
+        lastMapPosition = new Vector3(centerPos.x, centerPos.y, zoom);
     }
 }

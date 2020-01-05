@@ -31,16 +31,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
-            android:layout_marginLeft="34dp"
+            android:layout_marginLeft="36dp"
             android:text="Default Name"
             android:textColor="@color/colorTextWhite"
-            android:textSize="12sp" />
+            android:textSize="16sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="5 / 10"
-            android:textSize="12sp"
+            android:textSize="14sp"
             android:id="@+id/dino_stat_progressbar_amount"
             android:textColor="@color/colorTextWhite"
             android:layout_marginRight="8dp"
